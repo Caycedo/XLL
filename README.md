@@ -53,7 +53,56 @@ list := XLL.New[int](
 
 ## Performance
 
-XLL offers comparable performance to standard doubly linked lists for most operations, with the added benefit of reduced memory usage. Benchmark results are available in the `benchmark_test.go` file.
+XLL offers comparable performance to standard doubly linked lists for most operations, with the added benefit of reduced memory usage. Here are the benchmark results:
+
+### XLL Benchmark Results
+
+This benchmark compares the performance of XLL (XOR Linked List) against standard slices and doubly linked lists in Go.
+
+#### System Information
+- **OS**: Windows
+- **Architecture**: amd64
+- **CPU**: 13th Gen Intel(R) Core(TM) i9-13900H
+
+#### Operation Benchmarks
+
+| Operation | XLL | Slice | Doubly Linked List |
+|-----------|-----|-------|---------------------|
+| Insert Front | 42.09 ns/op | - | 54.95 ns/op |
+| Insert Back | 42.48 ns/op | 10.30 ns/op | - |
+| Delete Front | 20.54 ns/op | - | - |
+| Delete Back | 20.41 ns/op | - | - |
+| Traverse Forward | 1463252 ns/op | 96078 ns/op | 3189529 ns/op |
+| Traverse Backward | 1536292 ns/op | - | - |
+
+#### Memory Usage
+
+| Data Structure | Memory Usage |
+|----------------|--------------|
+| XLL | 16,777,408 B |
+| Slice | 40,280,064 B |
+| Doubly Linked List | 55,997,984 B |
+
+#### Additional XLL Benchmarks
+
+| Operation | Performance |
+|-----------|-------------|
+| Insert Front | 45.76 ns/op |
+| Insert Back | 43.70 ns/op |
+| Insert Front (with options) | 41.27 ns/op |
+| Insert Back (with options) | 41.45 ns/op |
+
+#### Analysis
+
+1. **Insertion**: XLL performs competitively, with insert operations ranging from 41-46 ns/op. It outperforms the doubly linked list (54.95 ns/op) but is slower than slice insertion (10.30 ns/op).
+
+2. **Deletion**: XLL shows excellent performance in deletion operations, consistently around 20.4-20.5 ns/op for both front and back deletions.
+
+3. **Traversal**: XLL (1,463,252 ns/op) is significantly faster than the doubly linked list (3,189,529 ns/op) but slower than slice traversal (96,078 ns/op).
+
+4. **Memory Usage**: XLL shows superior memory efficiency, using only 16,777,408 bytes compared to 40,280,064 bytes for slices and 55,997,984 bytes for doubly linked lists.
+
+In summary, XLL offers a balanced performance profile with competitive insertion and deletion speeds, faster traversal than traditional linked lists, and significantly lower memory usage compared to both slices and doubly linked lists.
 
 ## Contributing
 
