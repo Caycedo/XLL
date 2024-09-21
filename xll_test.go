@@ -3,8 +3,10 @@ package XLL
 import (
 	"errors"
 	"math/rand/v2"
+	"runtime"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestInsert(t *testing.T) {
@@ -218,5 +220,103 @@ func TestConcurrentOperations(t *testing.T) {
 
 	if list.Size() != n/2 {
 		t.Errorf("Expected size %d after concurrent deletions, got %d", n/2, list.Size())
+	}
+}
+
+func TestGarbageCollection(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	var collected bool
+	var list *XLL[int]
+
+	func() {
+		list = New[int]()
+		// Add some elements to the list
+		for i := 0; i < 10; i++ {
+			if err := list.InsertBack(i); err != nil {
+				t.Fatalf("Failed to insert element: %v", err)
+			}
+		}
+	}()
+
+	runtime.SetFinalizer(&list, func(**XLL[int]) {
+		collected = true
+		wg.Done()
+	})
+
+	list = nil
+
+	for i := 0; i < 5; i++ {
+		runtime.GC()
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	c := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	select {
+	case <-c:
+		if !collected {
+			t.Error("List was not garbage collected")
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("Timeout waiting for garbage collection")
+	}
+}
+
+func TestGarbageCollectionDataRetention(t *testing.T) {
+	list := New[int](
+		WithBlockSize[int](64),
+		WithGrowthRate[int](1.5),
+		WithInitialCapacity[int](32),
+	)
+
+	for i := 0; i < 5; i++ {
+		if err := list.InsertFront(i); err != nil {
+			t.Errorf("Error inserting front: %v", err)
+		}
+		if err := list.InsertBack(i + 10); err != nil {
+			t.Errorf("Error inserting back: %v", err)
+		}
+	}
+
+	initialSize := list.Size()
+
+	for i := 0; i < 5; i++ {
+		runtime.GC()
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	if list.Size() != initialSize {
+		t.Errorf("List size changed after garbage collection. Expected %d, got %d", initialSize, list.Size())
+	}
+
+	expectedFront := []int{4, 3, 2, 1, 0}
+	expectedBack := []int{10, 11, 12, 13, 14}
+
+	err := list.TraverseForward(func(data int) {
+		if len(expectedFront) > 0 {
+			if data != expectedFront[0] {
+				t.Errorf("Front element mismatch. Expected %d, got %d", expectedFront[0], data)
+			}
+			expectedFront = expectedFront[1:]
+		} else {
+			if data != expectedBack[0] {
+				t.Errorf("Back element mismatch. Expected %d, got %d", expectedBack[0], data)
+			}
+			expectedBack = expectedBack[1:]
+		}
+	})
+
+	if err != nil {
+		t.Errorf("Error traversing list: %v", err)
+	}
+
+	if len(expectedFront) > 0 || len(expectedBack) > 0 {
+		t.Errorf("Not all expected elements were found in the list")
 	}
 }
